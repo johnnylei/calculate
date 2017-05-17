@@ -1,6 +1,6 @@
 #calculate {  
     width: 300px;  
-    height: 320px;  
+    height: 400px;
     border: 1px #32CD32 solid ;  
     border-radius: 5px;  
     background-color: #00CCFF;  
@@ -23,16 +23,16 @@ input {
 table {  
     width: 100%;  
     height: 100%;  
-}  
+}
 tr td {  
     width: 25%;  
-    height: 20%;  
+    height: 17%;
     background-color: #33CCFF;  
     border: 1px solid;  
     border-radius: 7px;  
     text-align: center;  
 }  
-tr td:hover {  
+tr td:hover {
     background-color: #3366FF;  
     cursor: pointer;  
 }  

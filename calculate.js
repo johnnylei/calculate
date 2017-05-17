@@ -56,6 +56,14 @@ function Calculate() {
             this.expression = this.removeBracket(this.expression);
         }
 
+        if(this.hasCaret(this.expression)) {
+            this.expression = this.removeCaret(this.expression);
+        }
+
+        if(this.hasReagan(this.expression)) {
+            this.expression = this.removeReagan(this.expression);
+        }
+
         if (this.hasMultiplicOrDivision(this.expression)) {
             this.expression = this.removeMultiplicOrDivision(this.expression);
         }
@@ -75,13 +83,19 @@ function Calculate() {
      */
     this.checkOperator = function(expression) {
         /**
-         * (^[\+\*\/])|([\+\-\*\/]$) 匹配首字符或是最后一个字符是不是运算符
+         * (^[\+\*\/])|([\+\-\*\/\^\√]$) 匹配首字符或是最后一个字符是不是运算符
          * ([\+\-\*\/][\+\*\/]+) [+,*,-,/]搭配一个或是多个[+,*,/]
          * ([\*\/](\-)+) [*,/]搭配一个或是多个[-]
          * ([\+\-](\-){2,}) [+,-]搭配两个以上的[-]
+         * (\√[^\d\(]+) 表示后面不能有除了数数字及括号意外的东西
+         * ((?:[^\d\)]+)\^)
+         * (\^[^\d\(]+)
+         * ((?:[^\d\)]+)\^[^\d\(]+) 表示前面和后面不能有数字及括号意外的字符
+         * ([\√\^]{2,}) 这个两个符号不可以连续
+         * ([\√\^]\d+[\√\^]) √2^,^22√222这样也是不允许的
          * @type RegExp
          */
-      var reg = /(^[\+\*\/])|([\+\-\*\/]$)|([\+\-\*\/][\+\*\/]+)|([\*\/](\-)+)|([\+\-](\-){2,})/;  
+      var reg = /(^[\+\*\/])|([\+\-\*\/\^\√]$)|([\+\-\*\/][\+\*\/]+)|([\*\/](\-)+)|([\+\-](\-){2,})|((?:[^\d\+\-\*\/])\√)|(\√[^\d\(]+)|((?:[^\d\)]+)\^)|(\^[^\d\(]+)|([\√\^]{2,})|([\√\^]\d+[\√\^])/;
       if(reg.test(expression)) {
           return false;
       }
@@ -99,7 +113,7 @@ function Calculate() {
          * ([\+\-\*\/]\.)|(\.[\+\-\*\/]) expression出现".+","+."等情况
          * ((\d+\.+){2,}\d*) expression出现"2.2.3.4.5","..","..."等情况
          */
-        var reg = /(^\.)|(\.$)|([\+\-\*\/]\.)|(\.[\+\-\*\/])|((\d+\.+){2,}\d*)/;
+        var reg = /(^\.)|(\.$)|([\+\-\*\/\^\√]\.)|(\.[\+\-\*\/\^\√])|((\d+\.+){2,}\d*)/;
         if (reg.test(expression)) {
             return false;
         }
@@ -157,6 +171,12 @@ function Calculate() {
         var subExpression = "";
         for(var i = 0; i < childExpression.length; i++) {
             subExpression = childExpression[i].substring(1,childExpression[i].length-1);
+            if (this.hasCaret(subExpression)) {
+                subExpression = this.removeCaret(subExpression);
+            }
+            if (this.hasReagan(subExpression)) {
+                subExpression = this.removeReagan(subExpression);
+            }
             if (this.hasMultiplicOrDivision(subExpression)) {
                 subExpression = this.removeMultiplicOrDivision(subExpression);
             }
@@ -173,9 +193,77 @@ function Calculate() {
         }
         return expression;
     };
-    
+
     /**
-     * 
+     *
+     * @param {type} expression
+     * make sure the expression with Reagan Or Caret
+     */
+    this.hasCaret = function(expression) {
+        var reg =  /\^/;
+        if (reg.test(expression)) {
+            return true;
+        }
+        return false;
+    };
+
+    this.removeCaret = function (expression) {
+        // var expression = "2^2 3^1234";
+        var regMatch = /(\d+\.?\d*)\^(\d+\.?\d*)/g;
+        var childResult = "";
+        var childExpression = expression.match(regMatch);
+        var mySign = '&removeReagan&'; //用一个特殊标记记录等会需要替换的位置
+        var replaceExpression = expression.replace(regMatch,mySign);
+        for(var i = 0; i < childExpression.length; i++) {
+            childResult = this.caret(childExpression[i]);
+            replaceExpression = replaceExpression.replace(mySign,childResult);
+        }
+        expression = replaceExpression;
+        return expression;
+    };
+
+    this.caret = function (expression) {
+        var regNumber = /\d+\.?\d*/g;
+        var arrNumbers = expression.match(regNumber);
+
+        return Math.pow(parseFloat(arrNumbers[0]), parseFloat(arrNumbers[1]));
+    };
+
+    this.hasReagan = function(expression) {
+        var reg =  /\√/;
+        if (reg.test(expression)) {
+            return true;
+        }
+        return false;
+    };
+
+    this.removeReagan = function (expression) {
+        // var expression = "2√2 3√1234";
+        var regMatch = /(\d+\.?\d*)*\√(\d+\.?\d*)/g;
+        var childResult = "";
+        var childExpression = expression.match(regMatch);
+        var mySign = '&removeReagan&'; //用一个特殊标记记录等会需要替换的位置
+        var replaceExpression = expression.replace(regMatch,mySign);
+        for(var i = 0; i < childExpression.length; i++) {
+            childResult = this.reagan(childExpression[i]);
+            replaceExpression = replaceExpression.replace(mySign,childResult);
+        }
+        expression = replaceExpression;
+        return expression;
+    };
+
+    this.reagan = function (expression) {
+        var regNumber = /\d+\.?\d*/g;
+        var arrNumbers = expression.match(regNumber);
+        if (arrNumbers[1]) {
+            return Math.pow(parseFloat(arrNumbers[1]), 1/parseFloat(arrNumbers[0]));
+        }
+
+        return Math.sqrt(parseFloat(arrNumbers[0]));
+    };
+
+    /**
+     *
      * @param {type} expression
      * @returns {@this;@call;removeMultiplicOrDivision}
      * make sure the expression with Multiplic Or Division
@@ -187,6 +275,7 @@ function Calculate() {
         };
         return false;
     };
+
     /**
      * 
      * @param {type} expression
@@ -198,7 +287,7 @@ function Calculate() {
         var regMatch = /((\d+\.?\d*)(\*|\/))+(\d+\.?\d*)/g;
         var childResult = "";
         var childExpression = expression.match(regMatch);
-        var mySign = "&mySign&"; //用一个特殊标记记录等会需要替换的位置
+        var mySign = "&removeMultiplicOrDivision&"; //用一个特殊标记记录等会需要替换的位置
         var replaceExpression = expression.replace(regMatch,mySign);
         for(var i = 0; i < childExpression.length; i++) {
             childResult = this.multiplicOrDivision(childExpression[i]);
